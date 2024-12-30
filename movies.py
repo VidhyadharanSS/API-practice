@@ -9,6 +9,8 @@ users = {
     "admin": "admin123", "user": "user123"
 }
 
+blacklist = set()
+
 tokens = {}
 movies = []
 bookings = []
@@ -27,16 +29,34 @@ def login():
 
         }, app.config['SECRET_KEY'], algorithm = 'HS256')
 
+        tokens[username] = token
+
         return jsonify({"Message": "Login is successful", "Token": token}), 200
     else:
         return jsonify({'Error': "Invalid credentials"}), 401
+
+#Logout API for blacklisting JWT Tokens - Revocation
+
+@app.route('/api/logout', methods= ['POST'])
+def logout():
+    token = request.headers.get('Authorization')
+
+    if token:
+        blacklist.add(token)
+        return jsonify({"Message": "Logged out successfully"}), 200
+
+    return jsonify({'Error':'No token found'})
+
+
 
 # Middleware API
 def authenticate_request():
     token = request.headers.get('Authorization')
     if not token:
         return jsonify({'Error':'Token is missing'})
-    
+    if token in blacklist:
+        return jsonify({'Error': 'Token has been revoked'}), 401
+
     try:
         decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithm = ['HS256'])
         return decoded
