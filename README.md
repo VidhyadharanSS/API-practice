@@ -8,7 +8,6 @@ A Simple RESTful Flask backend application for learning purposes.
 
 4. Worked on JWT blacklisting for revocation with a logout route
 
-5. 
 
 
 
