@@ -1,81 +1,66 @@
-from fastapi import FastAPI, Path #Define and validate path parameters in routes
-from typing import Optional #Defines optional parameters 
-from pydantic import BaseModel #Used to create data models with automatic validation
+from fastapi import FastAPI, Path
+from  pydantic import BaseModel
+from typing import Optional
 
 app = FastAPI()
 
-# Create a dictionary of key(id) : value pairs 
-students = {
+movies = {
     1:{
-        "name" : "John",
-        "age" : 17,
-        "year" : "year12"
+        "name" : "Dune 1",
+        "year" : 2021
     },
     2:{
-        "name" : "Tim",
-        "age" : 18,
-        "year" : "year14"
+        "name" : "Dune 2",
+        "year" : 2024
     }
 }
 
-
-#Defines the structure of student using pydantic validation
-class Student(BaseModel):
+class Movies(BaseModel):
     name: str
-    age: int
-    year: str
+    year: int
 
-class UpdateStudent(BaseModel):
+class UpdateMovies(BaseModel):
     name: Optional[str] = None
-    age: Optional[int] = None
-    year: Optional[str] = None
+    year: Optional[int] = None
 
-#GET SOMETHING BY INDEX ROUTE
-@app.get("/")
-def index():
-    return {"name" : "First data"}
+@app.get('/get-all-movies')
+def get_all_movies():
+    return movies
 
-#GET ALL STUDENTS
-@app.get('/get-students')
-def get_students():
-    return students
+@app.get('/get-movies-by-id/{movie_id}')
+def get_movies_by_id(movie_id: int = Path(description = "I will list your movies", gt = 0, lt = 3)):
+    return movies[movie_id]
 
+@app.get('/api/get-movies-by-name/{movie_id}')
+def get_movies_by_name(*, movie_id: int, movie_name: Optional[str] = None):
+    for movie_id in movies:
+        if movies[movie_id]['name'] == movie_name:
+            return movies[movie_id]
+    return {"Data": "Not found"}
 
-#PATH PARAMETERS - Path() : Gives description, gt and lt 
-@app.get('/get-student/{student_id}')
-def get_student(student_id: int = Path(description= "the ID of the student you want to view", gt=0, lt = 3)):
-    return students[student_id]
-
-#QUERY PARAMETERS of name and test (?)
-@app.get("/get-by-name/{student_id}")
-def get_student(*, student_id: int, name: Optional[str] = None):
-    for student_id in students:
-        if students[student_id]['name'] == name:
-            return students[student_id]
-    return {"Data" : "Not found"}
-
-#POST METHOD TO CREATE STUDENTS 
-@app.post('/create-student/{student-id}')
-def create_student(student_id : int, student : Student):
-    if student_id in students:
-        return {'Error' : 'Student exists'}
-
-    students[student_id] = student 
-    return students[student_id]
+@app.post('/api/create-movie/{movie_id}')
+def create_movie(*, movie_id: int = Path(description = "New movie added", lt = 10), movie : Movies):
+    if movie_id in movies:
+        return {'Error': 'Movie already exists'}
+    else:
+        movies[movie_id] = movie
+        return movies[movie_id]
 
 
-#PUT METHOD TO UPDATE STUDENTS 
-@app.put('/update-student/{student_id}')
-def update_student(student_id : int, student : UpdateStudent):
-    if student_id not in students:
-        return {'Error' : 'Student not exists'}
+@app.put('/api/update-movie/{movie_id}')
+def update_movie(*, movie_id: int, movie : UpdateMovies):
+    if movie_id not in movies:
+        return {'Error' : 'Movie doesnt exist'}
+    else:
+        if movie.name != None:
+            movies[movie_id]['name'] = movie.name
+        if movie.year != None:
+            movies[movie_id]['year'] = movie.year
 
-    if student.name != None:
-            students[student_id].["name"] = student.name
-    if student.age != None:
-            students[student_id].['age'] = student.age
-    if student.year != None:
-            students[student_id].['year'] = student.year       
+    return movies[movie_id]
         
-    return students[student_id]
-
+@app.delete('/api/delete-movie/{movie_id}')
+def delete_movie(*, movie_id: int):
+    if movie_id not in movies:
+        return {'Error' : 'Movie doesnt exist'}
+    del movies[movie_id]
