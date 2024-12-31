@@ -1,6 +1,6 @@
-from fastapi import FastAPI, Path
+from fastapi import FastAPI, Path, Depends, HTTPException, Query
 from  pydantic import BaseModel
-from typing import Optional
+from typing import List,Optional, Dict
 
 app = FastAPI()
 
@@ -14,6 +14,8 @@ movies = {
         "year" : 2024
     }
 }
+def get_movie_db():
+    return movies
 
 class Movies(BaseModel):
     name: str
@@ -23,16 +25,20 @@ class UpdateMovies(BaseModel):
     name: Optional[str] = None
     year: Optional[int] = None
 
-@app.get('/get-all-movies')
-def get_all_movies():
-    return movies
+@app.get('/api/get-all-movies', summary = "Get all movies", tags = ["Movies"])
+def get_all_movies(db: Dict[int,[str, int]] = Depends(get_movie_db)):
+    return db
 
-@app.get('/get-movies-by-id/{movie_id}')
-def get_movies_by_id(movie_id: int = Path(description = "I will list your movies", gt = 0, lt = 3)):
+@app.get('/api/get-movies-by-id/{movie_id}', summary = "Get movie by ID", tags = ['Movies'])
+def get_movies_by_id(movie_id: int = Path(description = "I will list your movies", gt = 0, lt = 3), db: Dict[int, Dict[str,int]] = Depends(get_movie_db)):
+    if movie_id not in db:
+        raise HTTPException(status_code = 404, detail = "Movie not found")
     return movies[movie_id]
 
-@app.get('/api/get-movies-by-name/{movie_id}')
-def get_movies_by_name(*, movie_id: int, movie_name: Optional[str] = None):
+@app.get('/api/get-movies-by-name/{movie_id}', summary = "Get movies by name", tags = ['Movies'])
+def get_movies_by_name(*, movie_id: int, movie_name: Optional[str] = None, db: Dict[int, Dict[str, int]] = Depends(get_movie_db)):
+    if movie_id not in db:
+        raise HTTPException(status_code = 404, detail = "Movie not found")
     for movie_id in movies:
         if movies[movie_id]['name'] == movie_name:
             return movies[movie_id]
